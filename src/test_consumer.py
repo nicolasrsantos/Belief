@@ -18,7 +18,7 @@ from sklearn.feature_extraction.text import TfidfTransformer
 from sklearn.naive_bayes import MultinomialNB
 
 if __name__ == "__main__":
-    csv_path = "D:\\Dropbox\\Códigos\\python\\machine learning\\Belief\\csv\\"
+    csv_path = "/home/nicolas/Documents/Scripts/Rumour Belief/csv/"
     dataset = pd.read_csv(csv_path + "submissions_with labels.csv", engine='python')
     dataset.head()
     
