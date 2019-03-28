@@ -12,7 +12,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.svm import SVC
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.naive_bayes import GaussianNB, BernoulliNB
+from sklearn.naive_bayes import GaussianNB, BernoulliNB, MultinomialNB
 from sklearn.preprocessing import label_binarize
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.neighbors import KNeighborsClassifier
@@ -22,7 +22,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.preprocessing import Normalizer, MinMaxScaler
-from sklearn.model_selection import cross_val_score, KFold, LeaveOneOut, StratifiedKFold
+from sklearn.model_selection import cross_val_score, KFold, LeaveOneOut, StratifiedKFold, ShuffleSplit
 
 def execute_OneVsRestSVM(X_train, y_train, X_test, y_test):
     classifier = OneVsRestClassifier(SVC(kernel = 'linear', probability = True, random_state = 0))
@@ -37,7 +37,7 @@ def execute_OneVsRestNB(X_train, y_train, X_test, y_test):
     utils.compute_ROC(n_classes, y_test, y_score)
     
 def execute_SVM(X_train, y_train, X_test, y_test):
-    classifier = SVC(kernel = 'linear', random_state = 0)
+    classifier = SVC(kernel = 'linear', random_state = 0, gamma = 'auto')
     classifier.fit(X_train, y_train)
     y_pred = classifier.predict(X_test)
     print("SVM results")
@@ -63,23 +63,28 @@ def execute_KNN(X_train, y_train, X_test, y_test):
    # print(knn_gs.best_params_)
 
 def execute_voting_classifier(X, y):
-    clf1 = BernoulliNB()
-    clf2 = SVC(probability = True, kernel = 'sigmoid', random_state = 0)
-    clf3 = KNeighborsClassifier(n_neighbors = 2)
+    clf1 = GaussianNB()
+    clf2 = SVC(probability = True, kernel = 'linear', random_state = 0, gamma = 'auto')
+    clf3 = KNeighborsClassifier(n_neighbors = 9)
     eclf = VotingClassifier(estimators=[('nb', clf1), ('svm', clf2), ('knn', clf3)], voting='soft', weights = [2, 2, 1])
     kf = StratifiedKFold(n_splits = 10, shuffle = True)
    
     for clf, label in zip([clf1, clf2, clf3, eclf], ['nb', 'svm', 'knn', 'Ensemble']):
         scores = cross_val_score(clf, X, y, cv = kf, scoring='accuracy')
         print("Accuracy: %0.2f (+/- %0.2f) [%s]" % (scores.mean(), scores.std(), label))
-        
+
+def remove_label(df):        
+    indices_to_remove = df[df['Label'] == 'Neutral'].index.values.astype(int)
+    return df.drop(indices_to_remove, axis = 0)
+    
 if __name__ == "__main__":    
-    csv_path = "D:\\Code\\Workspace\\Belief\\csv\\"
+    csv_path = "/home/nicolas/Documents/Scripts/Belief/csv/"
     df = pd.read_csv(csv_path + "data.csv")
     df = pd.get_dummies(df, columns = ['Sentiment', 'Type'])
+    df = remove_label(df) 
     
     # Moving the feature 'Sarcasm score' to the range 0 < x < 1
-    sarc_score = df['Sarcasm score'].values.reshape(-1, 1)
+    sarc_score = df['Sarcasm score'].values.reshape(-1, 1).astype(float)
     scaler = MinMaxScaler()
     df['Sarcasm score'] = scaler.fit_transform(sarc_score)
     
@@ -95,32 +100,37 @@ if __name__ == "__main__":
     y = df.Label
     
 # =============================================================================
-#     y = label_binarize(y, classes=['Believe', 'Disbelieve', 'Neutral'])
+#     y = label_binarize(y, classes=['Believe', 'Disbelieve'])
 #     n_classes = y.shape[1]
 # =============================================================================
     
-# =============================================================================
-#     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state = 0)
-#     execute_SVM(X_train, y_train, X_test, y_test)
-#     execute_NB(X_train, y_train, X_test, y_test)
-#     execute_KNN(X_train, y_train, X_test, y_test)
-#     
-# =============================================================================
-    execute_voting_classifier(X, y)
+    #X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state = 0)
+    #execute_SVM(X_train, y_train, X_test, y_test)
+    #execute_NB(X_train, y_train, X_test, y_test)
+    #execute_KNN(X_train, y_train, X_test, y_test)
+    
+    #execute_voting_classifier(X, y)
 # =============================================================================
 #     loo = LeaveOneOut() 
 #     classifier = BernoulliNB()
 #     scores = cross_val_score(classifier, X, y, cv = loo)
 #     print(np.mean(scores))
 # =============================================================================
-    
 # =============================================================================
 #     kf = StratifiedKFold(n_splits = 10, shuffle = True)
-#     classifier = KNeighborsClassifier(n_neighbors = 19)
-#     scores = cross_val_score(classifier, X, y, cv = kf)
-#     avg_score = np.mean(scores)
-#     print("%0.2f" % avg_score)
+#     knn = KNeighborsClassifier()
+#     params_knn = {'n_neighbors': np.arange(1, 25)} 
+#     knn_gs = GridSearchCV(knn, params_knn, cv=kf)
+#     knn_gs.fit(X_train, y_train)         
+#     knn_best = knn_gs.best_estimator_
+#     print(knn_gs.best_params_)
 # =============================================================================
+    
+    kf = StratifiedKFold(n_splits = 10, shuffle = True)
+    classifier = BernoulliNB()
+    scores = cross_val_score(classifier, X, y, cv = kf)
+    avg_score = np.mean(scores)
+    print("Accuracy: %0.2f" % avg_score)
     
     #execute_OneVsRestSVM(X_train, y_train, X_test, y_test)
    #execute_OneVsRestNB(X_train, y_train, X_test, y_test)
