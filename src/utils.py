@@ -61,10 +61,18 @@ def displayScores(vectorizer, tfidf_result):
 
 def compute_metrics(y_test, y_pred):
     #print(confusion_matrix(y_test, y_pred))
-    print(accuracy_score(y_test, y_pred))
-    print(f1_score(y_test, y_pred, average = 'weighted'))
-    print(precision_score(y_test, y_pred, average = 'weighted'))
-    print(recall_score(y_test, y_pred, average = 'weighted'))
+    print("Accuracy:", accuracy_score(y_test, y_pred))
+    print("F1:", f1_score(y_test, y_pred, average = 'weighted'))
+    print("Precision:", precision_score(y_test, y_pred, average = 'weighted'))
+    print("Recall:", recall_score(y_test, y_pred, average = 'weighted'))
+
+def convert_label(i):
+    if (i == 0):
+        return "Believe"
+    elif (i == 1):
+        return "Disbelieve"
+    else:
+        return "Neutral"
     
 def compute_ROC(n_classes, y_test, y_score):
     lw = 2
@@ -109,9 +117,10 @@ def compute_ROC(n_classes, y_test, y_score):
     
     colors = cycle(['aqua', 'darkorange', 'cornflowerblue'])
     for i, color in zip(range(n_classes), colors):
+        print(i)
         plt.plot(fpr[i], tpr[i], color = color, lw = lw,
                  label = 'ROC curve of class {0} (area = {1:0.2f})'
-                 ''.format(i, roc_auc[i]))
+                 ''.format(convert_label(i), roc_auc[i]))
     
     plt.plot([0, 1], [0, 1], 'k--', lw = lw)
     plt.xlim([0.0, 1.0])
